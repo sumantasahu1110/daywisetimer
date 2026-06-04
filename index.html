@@ -1,0 +1,341 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.shell{width:min(360px,100%);aspect-ratio:9/16;background:#0a0a0a;border-radius:16px;display:flex;flex-direction:column;align-items:center;padding:16px 16px 12px;overflow:hidden}
+.ring-wrap{position:relative;width:155px;height:155px;flex-shrink:0}
+.ring-wrap svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ring-sublbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:#444;font-family:monospace}
+.ring-pct{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;font-family:monospace;line-height:1}
+.ring-pct .sm{font-size:14px;font-weight:400;color:#555}
+.bar-track{width:100%;height:5px;background:#1c1c1c;border-radius:3px;overflow:hidden;margin-top:9px}
+.bar-fill{height:100%;width:0%;background:#22c55e;border-radius:3px}
+.clk{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.08em;color:#fff;font-family:monospace;margin-top:7px}
+.dateline{display:flex;align-items:baseline;gap:4px;margin-top:3px}
+.slot{overflow:hidden;height:17px}
+.slot-inner{display:flex;flex-direction:column}
+.slot-item{height:17px;line-height:17px;font-size:12px;font-weight:600;color:#ddd;white-space:nowrap;font-family:monospace}
+.days-txt{font-size:10px;color:#444;font-family:monospace;margin-top:2px;letter-spacing:.04em}
+.grid-wrap{width:100%;margin-top:8px}
+.grid{display:grid}
+.sq{border-radius:2px;background:#1a1a1a}
+.sq.on{background:#22c55e}
+.divider{width:100%;height:1px;background:#181818;margin-top:9px;flex-shrink:0}
+.facts{width:100%;margin-top:8px;flex:1;display:flex;flex-direction:column}
+.theme-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-family:monospace;font-weight:700;margin-bottom:7px;align-self:flex-start}
+.facts-title{font-size:10.5px;color:#aaa;font-family:'Georgia',serif;font-style:italic;margin-bottom:6px;line-height:1.4}
+.fact{display:flex;align-items:flex-start;gap:7px;padding:4px 0;border-bottom:0.5px solid #141414}
+.fact:last-child{border-bottom:none}
+.fact-icon{font-size:12px;flex-shrink:0;margin-top:1px}
+.fact-text{font-size:11.5px;color:#bbb;font-family:'Georgia',serif;line-height:1.35;font-style:italic}
+.fact-text strong{font-style:normal;color:#fff;font-weight:700;font-family:monospace;font-size:12px}
+.footer{width:100%;margin-top:8px;padding-top:7px;border-top:0.5px solid #1a1a1a;display:flex;align-items:center;justify-content:center;gap:0;flex-shrink:0}
+.footer-txt{font-size:11px;font-family:monospace;letter-spacing:.06em;color:#444}
+.footer-cta{font-size:11px;font-family:monospace;letter-spacing:.06em;font-weight:700}
+</style>
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">2026 year progress daily theme card</h2>
+<div style="display:flex;justify-content:center;width:100%">
+<div class="shell" id="shell">
+  <div class="ring-wrap">
+    <svg viewBox="0 0 155 155" fill="none">
+      <circle cx="77.5" cy="77.5" r="66" stroke="#1e1e1e" stroke-width="8"/>
+      <circle id="ring" cx="77.5" cy="77.5" r="66" stroke="#22c55e" stroke-width="8" stroke-linecap="round"/>
+    </svg>
+    <div class="ring-center">
+      <span class="ring-sublbl">2026 progress</span>
+      <div class="ring-pct" id="pct">0<span class="sm">%</span></div>
+    </div>
+  </div>
+  <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
+  <div class="clk" id="clk">00:00:00</div>
+  <div class="dateline">
+    <div class="slot" style="min-width:15px"><div class="slot-inner" id="dInner"></div></div>
+    <div class="slot" style="min-width:66px"><div class="slot-inner" id="mInner"></div></div>
+    <span style="font-size:12px;font-weight:600;color:#ddd;font-family:monospace">2026</span>
+  </div>
+  <div class="days-txt" id="dyTxt">0 of 365 days elapsed</div>
+  <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+  <div class="divider"></div>
+  <div class="facts">
+    <div class="theme-badge" id="badge"></div>
+    <div class="facts-title" id="factsTitle"></div>
+    <div id="factsList"></div>
+  </div>
+  <div class="footer">
+    <span class="footer-txt">✦&nbsp;&nbsp;</span>
+    <span class="footer-cta" id="footerCta"></span>
+    <span class="footer-txt">&nbsp;&nbsp;✦</span>
+  </div>
+</div>
+</div>
+
+<script>
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MDAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
+const now=new Date();
+const y=now.getFullYear();
+const leap=(y%4===0&&y%100!==0)||y%400===0;
+const totalDays=leap?366:365;
+const yrStart=new Date(y,0,1);
+const tPct=(now-yrStart)/(totalDays*86400000)*100;
+const tDays=Math.floor((now-yrStart)/86400000)+1;
+const tMonth=now.getMonth();
+const tDay=now.getDate();
+const daysInMonth=MDAYS[tMonth];
+const isLastDayOfMonth=(tDay===daysInMonth);
+
+/* ── Daily theme engine ── */
+/* Each theme: id, badge label, badge colour, title, 4 facts (text with {N} placeholder = animated count) */
+const THEMES=[
+  {
+    id:'cinema',col:'#f43f5e',label:'🎬 Cinema',
+    title:'In the time 2026 has passed, a film buff could have…',
+    facts:[
+      {icon:'🎞',text:'Watched <strong>{N}</strong> full Titanic screenings (3h 14m each)',base:77},
+      {icon:'🍿',text:'Sat through <strong>{N}</strong> Marvel movies back-to-back',base:114},
+      {icon:'🎭',text:'Attended <strong>{N}</strong> Broadway show performances',base:132},
+      {icon:'📽',text:'Screened every Oscar Best Picture winner <strong>{N}</strong> times over',base:9},
+    ]
+  },
+  {
+    id:'space',col:'#818cf8',label:'🚀 Space',
+    title:'In the time elapsed, a space explorer could have…',
+    facts:[
+      {icon:'🌍',text:'Circled Earth <strong>{N}</strong> times aboard the ISS (90 min orbit)',base:6},
+      {icon:'🌕',text:'Watched <strong>{N}</strong> full Moon phases come and go',base:5},
+      {icon:'🛰',text:'Travelled <strong>{N}</strong> million km — halfway to Mars',base:280},
+      {icon:'☀️',text:'Counted <strong>{N}</strong> sunrises from the ISS',base:2400},
+    ]
+  },
+  {
+    id:'food',col:'#f97316',label:'🍜 Food',
+    title:'Hungry for perspective? In this time you could have…',
+    facts:[
+      {icon:'☕',text:'Brewed <strong>{N}</strong> cups of coffee (one every 2 hrs)',base:700},
+      {icon:'🍕',text:'Eaten <strong>{N}</strong> whole pizzas at a leisurely pace',base:45},
+      {icon:'🍣',text:'Visited <strong>{N}</strong> different sushi restaurants globally',base:30},
+      {icon:'🎂',text:'Baked <strong>{N}</strong> birthday cakes from scratch',base:22},
+    ]
+  },
+  {
+    id:'books',col:'#22d3ee',label:'📚 Books',
+    title:'A dedicated reader could have devoured…',
+    facts:[
+      {icon:'📖',text:'<strong>{N}</strong> average novels cover to cover',base:20},
+      {icon:'🗞',text:'<strong>{N}</strong> full editions of The New York Times',base:156},
+      {icon:'📜',text:'<strong>{N}</strong> Shakespeare plays read aloud slowly',base:48},
+      {icon:'🔬',text:'<strong>{N}</strong> complete science textbook chapters',base:312},
+    ]
+  },
+  {
+    id:'music',col:'#a78bfa',label:'🎵 Music',
+    title:'A music obsessive could have listened to…',
+    facts:[
+      {icon:'🎶',text:'<strong>{N}</strong> complete Beethoven symphonies',base:140},
+      {icon:'🎸',text:'Every Beatles album <strong>{N}</strong> times over',base:55},
+      {icon:'🎤',text:'<strong>{N}</strong> full Taylor Swift discographies end to end',base:18},
+      {icon:'🥁',text:'<strong>{N}</strong> hours of non-stop lo-fi hip-hop',base:3744},
+    ]
+  },
+  {
+    id:'sleep',col:'#34d399',label:'😴 Sleep',
+    title:'In elapsed time, your body has (or should have)…',
+    facts:[
+      {icon:'🛏',text:'Slept for <strong>{N}</strong> full days straight',base:52},
+      {icon:'💤',text:'Cycled through <strong>{N}</strong> complete REM sleep cycles',base:1248},
+      {icon:'🌙',text:'Dreamed approximately <strong>{N}</strong> hours of vivid dreams',base:374},
+      {icon:'⏰',text:'Snoozed an alarm roughly <strong>{N}</strong> times (5 min each)',base:270},
+    ]
+  },
+  {
+    id:'tech',col:'#facc15',label:'💻 Tech',
+    title:'In compute terms, this time is enough to…',
+    facts:[
+      {icon:'⌨️',text:'Type <strong>{N}</strong> million words at average speed',base:9},
+      {icon:'📱',text:'Scroll <strong>{N}</strong> km of social media feed end to end',base:310},
+      {icon:'🔋',text:'Charge and drain a phone <strong>{N}</strong> times completely',base:155},
+      {icon:'📧',text:'Read <strong>{N}</strong> thousand unread emails at 1 min each',base:22},
+    ]
+  },
+  {
+    id:'sport',col:'#fb923c',label:'🏃 Sport',
+    title:'An athlete in this time could have…',
+    facts:[
+      {icon:'🏃',text:'Run <strong>{N}</strong> full marathons (42.2 km each)',base:43},
+      {icon:'🚴',text:'Cycled across <strong>{N}</strong> entire countries end to end',base:7},
+      {icon:'🏊',text:'Swum the English Channel <strong>{N}</strong> times',base:14},
+      {icon:'⚽',text:'Played <strong>{N}</strong> regulation 90-minute football matches',base:62},
+    ]
+  },
+  {
+    id:'nature',col:'#4ade80',label:'🌿 Nature',
+    title:'In the natural world, this time has been enough for…',
+    facts:[
+      {icon:'🌻',text:'A sunflower to grow from seed to <strong>{N}</strong> cm tall',base:180},
+      {icon:'🦋',text:'<strong>{N}</strong> complete butterfly metamorphosis cycles',base:10},
+      {icon:'🌊',text:'The tide to rise and fall <strong>{N}</strong> times along any coast',base:298},
+      {icon:'🌲',text:'A pine tree to grow approximately <strong>{N}</strong> new rings',base:1},
+    ]
+  },
+  {
+    id:'travel',col:'#38bdf8',label:'✈️ Travel',
+    title:'A globetrotter with this time could have…',
+    facts:[
+      {icon:'✈️',text:'Flown around Earth <strong>{N}</strong> times at cruising speed',base:6},
+      {icon:'🚂',text:'Ridden the Trans-Siberian Railway end-to-end <strong>{N}</strong> times',base:11},
+      {icon:'🚢',text:'Completed <strong>{N}</strong> transatlantic ocean liner crossings',base:28},
+      {icon:'🗺',text:'Visited <strong>{N}</strong> UNESCO World Heritage Sites leisurely',base:35},
+    ]
+  },
+  {
+    id:'money',col:'#fbbf24',label:'💰 Finance',
+    title:'At minimum wage (US $7.25/hr), in this time you could have earned…',
+    facts:[
+      {icon:'💵',text:'<strong>${N}</strong> in gross wages since Jan 1',base:8120},
+      {icon:'☕',text:'Bought <strong>{N}</strong> Starbucks lattes at $5.50 each',base:1476},
+      {icon:'📈',text:'Invested <strong>{N}</strong> S&P 500 index units if bought daily',base:155},
+      {icon:'🏠',text:'Covered <strong>{N}</strong> days of average US rent',base:46},
+    ]
+  },
+  {
+    id:'health',col:'#f472b6',label:'❤️ Health',
+    title:'Your body has worked hard — since Jan 1 your heart has…',
+    facts:[
+      {icon:'❤️',text:'Beaten approximately <strong>{N}</strong> million times',base:21},
+      {icon:'🫁',text:'Taken roughly <strong>{N}</strong> million breaths',base:6},
+      {icon:'🔬',text:'Replaced <strong>{N}</strong> billion red blood cells',base:2400},
+      {icon:'🦴',text:'Rebuilt <strong>{N}%</strong> of your skeleton so far this year',base:8},
+    ]
+  },
+];
+
+/* Pick theme deterministically by day-of-year */
+const dayOfYear=tDays;
+const theme=THEMES[dayOfYear%THEMES.length];
+
+/* Render theme */
+const badge=document.getElementById('badge');
+badge.textContent=theme.label;
+badge.style.background=theme.col+'22';
+badge.style.color=theme.col;
+badge.style.border='0.5px solid '+theme.col+'55';
+document.getElementById('factsTitle').textContent=theme.title;
+
+const factsList=document.getElementById('factsList');
+const factEls=[];
+theme.facts.forEach(f=>{
+  const row=document.createElement('div');row.className='fact';
+  const ico=document.createElement('span');ico.className='fact-icon';ico.textContent=f.icon;
+  const txt=document.createElement('span');txt.className='fact-text';txt.innerHTML=f.text.replace('{N}','<span class="fn">0</span>');
+  row.appendChild(ico);row.appendChild(txt);
+  factsList.appendChild(row);
+  factEls.push({el:txt.querySelector('.fn'),base:f.base});
+});
+
+/* Footer */
+const nextDay=isLastDayOfMonth?1:tDay+1;
+const nextLabel=isLastDayOfMonth?'Day 1 of 2027':'Day '+(dayOfYear+1)+' of 2026';
+document.getElementById('footerCta').textContent='Follow for '+nextLabel;
+document.getElementById('footerCta').style.color=theme.col;
+
+/* Grid */
+const CIRC=2*Math.PI*66;
+const ringEl=document.getElementById('ring');
+ringEl.setAttribute('stroke-dasharray',CIRC.toFixed(3));
+ringEl.setAttribute('stroke-dashoffset',CIRC.toFixed(3));
+
+const GAP=4;
+const ROWS=12;
+const COLS=Math.ceil(totalDays/ROWS);
+const gridEl=document.getElementById('grid');
+const shellEl=document.getElementById('shell');
+let sqSize=6;
+function buildGrid(){
+  const aw=shellEl.offsetWidth-32;
+  sqSize=Math.max(3,Math.floor((aw-(COLS-1)*GAP)/COLS));
+  gridEl.style.gridTemplateColumns='repeat('+COLS+','+sqSize+'px)';
+  gridEl.style.gridTemplateRows='repeat('+ROWS+','+sqSize+'px)';
+  gridEl.style.gap=GAP+'px';
+}
+buildGrid();
+const squares=[];
+for(let i=0;i<totalDays;i++){
+  const s=document.createElement('div');s.className='sq';
+  s.style.width=sqSize+'px';s.style.height=sqSize+'px';
+  gridEl.appendChild(s);squares.push(s);
+}
+for(let i=totalDays;i<ROWS*COLS;i++){
+  const s=document.createElement('div');
+  s.style.cssText='width:'+sqSize+'px;height:'+sqSize+'px;background:transparent';
+  gridEl.appendChild(s);
+}
+
+/* Colour lit squares with theme accent */
+squares.forEach(s=>s.style.setProperty('--on-color',theme.col));
+
+const styleTag=document.createElement('style');
+styleTag.textContent='.sq.on{background:'+theme.col+' !important}';
+document.head.appendChild(styleTag);
+
+let lastLit=-1;
+function lightSquare(i){
+  const sq=squares[i];
+  if(!sq||sq.classList.contains('on'))return;
+  sq.classList.add('on');
+}
+
+const mInner=document.getElementById('mInner');
+for(let i=0;i<=tMonth;i++){
+  const e=document.createElement('div');e.className='slot-item';e.textContent=MONTHS[i]+' ';mInner.appendChild(e);
+}
+mInner.style.transform='translateY(0px)';
+const dInner=document.getElementById('dInner');
+const dEl=document.createElement('div');dEl.className='slot-item';dEl.textContent='1 ';dInner.appendChild(dEl);
+
+function easeSlowEnd(p){return 1-Math.pow(1-p,3);}
+const TOTAL=2800+tMonth*300;
+let introDone=false;
+const t0=performance.now();
+
+function setDisplay(sp,sd){
+  document.getElementById('pct').innerHTML=sp.toFixed(2)+'<span class="sm">%</span>';
+  document.getElementById('bar').style.width=sp+'%';
+  ringEl.setAttribute('stroke-dashoffset',(CIRC-CIRC*sp/100).toFixed(3));
+  document.getElementById('dyTxt').textContent=sd+' of '+totalDays+' days elapsed';
+  for(let i=lastLit+1;i<sd;i++){lightSquare(i);lastLit=i;}
+  const frac=sp/100;
+  factEls.forEach(f=>{
+    const raw=f.base*frac;
+    f.el.textContent=raw>=100?Math.round(raw):raw>=10?raw.toFixed(1):raw.toFixed(2);
+  });
+}
+
+(function loopA(ts){
+  const p=Math.min((ts-t0)/TOTAL,1),e=easeSlowEnd(p);
+  setDisplay(e*tPct,Math.round(e*(tDays-1)));
+  if(p<1)requestAnimationFrame(loopA);else{introDone=true;}
+})(t0);
+
+const perBudget=TOTAL/(tMonth+1);
+function animDay(m,done){
+  const maxD=m<tMonth?MDAYS[m]:tDay,s=performance.now();
+  (function t(ts){
+    const p=Math.min((ts-s)/(perBudget*.85),1);
+    dEl.textContent=Math.round(1+(maxD-1)*easeSlowEnd(p))+' ';
+    if(p<1)requestAnimationFrame(t);else if(done)setTimeout(done,40);
+  })(s);
+}
+function swipe(i){mInner.style.transition='transform .32s cubic-bezier(.22,1,.36,1)';mInner.style.transform='translateY('+(-i*17)+'px)';}
+function chain(m){animDay(m,()=>{if(m<tMonth){swipe(m+1);setTimeout(()=>chain(m+1),140);}});}
+chain(0);
+
+function tickClk(){
+  const n=new Date();
+  document.getElementById('clk').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+  if(introDone){
+    const lp=(Date.now()-yrStart)/(totalDays*86400000)*100;
+    setDisplay(lp,Math.floor((Date.now()-yrStart)/86400000));
+  }
+}
+setInterval(tickClk,1000);tickClk();
+</script>
